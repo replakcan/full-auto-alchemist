@@ -1,0 +1,43 @@
+services:
+  db:
+    image: mongo:latest
+    container_name: faa_db
+    env_file:
+      - .env
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  backend:
+    build: ./backend
+    container_name: faa_backend
+    env_file:
+      - .env
+    ports:
+      - '8080:8080'
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/health']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  frontend:
+    build: ./frontend
+    container_name: faa_frontend
+    env_file:
+      - .env
+    ports:
+      - '3001:3001'
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mongo_data:
